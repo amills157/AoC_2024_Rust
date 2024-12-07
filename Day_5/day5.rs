@@ -1,6 +1,7 @@
 use std::io::prelude::*;
 use std::fs::File;
 use std::collections::BTreeMap;
+use std::cmp::Ordering;
 
 // Struct time ya'll
 struct Printing {
@@ -37,7 +38,7 @@ fn string_to_printing(input: &str) -> Printing {
     Printing { rules, updates }
 }
 
-fn part_one(){
+fn part_one_and_two(){
     let string_value = read_example_txt();
 
     let printing = string_to_printing(&string_value);
@@ -46,7 +47,9 @@ fn part_one(){
 
     // println!("{:?}", rules.updates);
 
-    let mut sum = 0;
+    let mut pt1_sum = 0;
+
+    let mut invalid_updates = vec![];
 
     // No goto in Rust
     // https://stackoverflow.com/questions/22905752/named-breaks-in-for-loops-in-rust
@@ -57,47 +60,40 @@ fn part_one(){
             if let Some(must_be_before) = printing.rules.get(current_page) {
                 for pages in update.iter().skip(idx) {
                     if must_be_before.contains(pages) {
+                        invalid_updates.push(update);
                         continue 'outer;
                     }
                 }
             }
         }
-        sum += update[update.len() / 2];
+        pt1_sum += update[update.len() / 2];
 
         // println!("--------------");
     }
-    println!("The answer to part one is {}", sum);
+    println!("The answer to part one is {}", pt1_sum);
+
+    let mut pt2_sum = 0;
+
+    for update in invalid_updates {
+        // Need to implictly clone / copy data 
+        // update` is a `&` reference, so the data it refers to cannot be borrowed as mutable
+        let mut update_clone = update.clone();
+        // https://doc.rust-lang.org/std/primitive.slice.html#method.sort_by
+        update_clone.sort_by(|a, b| {
+            if let Some(must_be_before) = printing.rules.get(b) {
+                if must_be_before.contains(a) {
+                    return Ordering::Less;
+                }
+            }
+            Ordering::Equal
+        });
+        pt2_sum += update_clone[update_clone.len() / 2]
+    }
+    println!("The answer to part two is {}", pt2_sum);
 
 }
 
 
-// fn part_two(){
-//     let string_value = read_example_txt();
-
-//     let (mut int_vec_1, mut int_vec_2) = string_to_int_vectors(&string_value);
-
-//     int_vec_1.sort();
-//     int_vec_2.sort();
-
-//     let mut sum = 0;
-
-//     for (pos, e) in int_vec_1.iter().enumerate() {
-//         // println!("Element at position {}: {:?}", pos, e);
-
-//         let value_count = (int_vec_2.iter().filter(|&n| *n == *e).count()) as i32;
-
-//         sum += (value_count * e);
-
-//         //println!("{}", (value_count * e));
-//     }
-
-//     println!("The answer to part two is {}", sum);
-
-// }
-
-
 fn main() {    
-    part_one();
-
-    //part_two();
+    part_one_and_two();
 }
