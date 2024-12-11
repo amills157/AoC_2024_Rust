@@ -1,7 +1,8 @@
 use std::io::prelude::*;
 use std::fs::File;
 use std::cmp;
-
+use std::iter::FromIterator;
+use std::collections::HashMap;
 
 fn read_example_txt() -> String{
     let mut file = File::open("example.txt").expect("Unable to open the file");
@@ -44,6 +45,39 @@ fn blink_stone(input: String) -> (String, usize) {
     return (vec.join(" "), vec.len());
 }
 
+// I could just remove blink_stone(v1) - But *shrugs*
+fn blink_stone_v2(stone_mapping: &mut HashMap<i64, usize>){
+    
+    //https://doc.rust-lang.org/std/collections/struct.HashMap.html#method.with_capacity
+    let mut next_stone_mapping = HashMap::with_capacity(stone_mapping.capacity());
+
+    for (&key, value) in stone_mapping.iter() {
+        if key == 0 {
+            *next_stone_mapping.entry(1).or_insert(0) += value;
+        } else {
+            let key_string = key.to_string();
+            
+            if key_string.len() % 2 == 0 {
+                let mut cur = key_string.clone();
+                let sub_len = key_string.len() / 2;
+                while !cur.is_empty() {
+                    let (chunk, rest) = cur.split_at(cmp::min(sub_len, cur.len()));
+                    // Handle leading 0's automatically
+                    let temp_int = chunk.to_string().parse::<i64>().unwrap();
+                    *next_stone_mapping.entry(temp_int).or_insert(0) += value;
+                    cur = rest.to_string();
+                }
+
+            } else {
+                *next_stone_mapping.entry(key * 2024).or_insert(0) += value;
+            }
+        }
+    }
+
+    *stone_mapping = next_stone_mapping;
+    //println!("{:?}", histogram)
+}
+
 #[allow(dead_code, unused_variables)]
 fn part_one(){
     let string_value = read_example_txt();
@@ -69,33 +103,32 @@ fn part_one(){
 }
 
 
-// fn part_two(){
-//     let string_value = read_example_txt();
+#[allow(dead_code, unused_variables)]
+fn part_two(){
+    let string_value = read_example_txt();
+    
+    let int_vec: Vec<i64> = string_value.split(' ').map(|x|->i64{x.parse().unwrap()}).collect();
+    
+    let mut stone_mapping = HashMap::from_iter(int_vec.into_iter().map(|s| (s,1)));
 
-//     let (mut int_vec_1, mut int_vec_2) = string_to_int_vectors(&string_value);
-
-//     int_vec_1.sort();
-//     int_vec_2.sort();
-
-//     let mut sum = 0;
-
-//     for (pos, e) in int_vec_1.iter().enumerate() {
-//         // println!("Element at position {}: {:?}", pos, e);
-
-//         let value_count = (int_vec_2.iter().filter(|&n| *n == *e).count()) as i32;
-
-//         sum += (value_count * e);
-
-//         //println!("{}", (value_count * e));
-//     }
-
-//     println!("The answer to part two is {}", sum);
-
-// }
+    let mut range = 75;
+    
+    while range >0{
+    
+        blink_stone_v2(&mut stone_mapping);
+        
+        range -= 1;
+    }
+    
+    let number_of_stones: usize = stone_mapping.values().sum();
+    
+    println!("The answer to part two is {}", number_of_stones);
+    
+}
 
 // https://www.onlinegdb.com/online_rust_compiler
 fn main() {    
     part_one();
 
-    //part_two();
+    part_two();
 }
