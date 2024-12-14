@@ -23,9 +23,7 @@ fn part_one(){
         //println!("{}", line);
 
         for (x, c) in line.chars().enumerate() {
-            if c != '.' && c != '#' {
-                crossword.entry((x as i32, y as i32)).or_insert(c);
-            }
+            crossword.entry((x as i32, y as i32)).or_insert(c);
         }
         
     }
@@ -65,29 +63,56 @@ fn part_one(){
 }
 
 
-// fn part_two(){
-//     let string_value = read_example_txt();
+fn part_one(){
+    let string_value = read_example_txt();
+    
+    let mut crossword: HashMap<(i32, i32), char> = HashMap::new();
+    
+    let mut sum = 0;
 
-//     let (mut int_vec_1, mut int_vec_2) = string_to_int_vectors(&string_value);
+    for (y, line) in string_value.lines().enumerate() {
 
-//     int_vec_1.sort();
-//     int_vec_2.sort();
+        //println!("{}", line);
 
-//     let mut sum = 0;
+        for (x, c) in line.chars().enumerate() {
+            crossword.entry((x as i32, y as i32)).or_insert(c);
+        }
+        
+    }
+    
+    //                                  RDRight   URight   DLeft    ULeft
+    const DIRECTIONS: [(i32, i32); 8] = [(1, 1), (1, -1), (-1, 1), (-1, -1)];
 
-//     for (pos, e) in int_vec_1.iter().enumerate() {
-//         // println!("Element at position {}: {:?}", pos, e);
+    for (key, value) in crossword.clone().into_iter() {
+        
+        if value == 'A'{
+            let x = key.0;
+            let y = key.1;
+            
+            for direction in DIRECTIONS{
+            
+                let mut possible_match = Vec::new();
+                
+                for i in 0..4{
+                    //Need the unwrap_or(&' ') to avoid the value being Some('<value>') which buggers with my check
+                    let next_char = crossword.get(&(x + direction.0*i, y + direction.1*i)).unwrap_or(&' ');
+                    possible_match.push(next_char.to_string());
+                    //println!("x = {:?} y = {:?}", direction.0 *i, direction.1 *i);
+                }
+                if possible_match.join("") == "MAS"{
+                    println!("{:?}", possible_match);
+                    sum +=1;
+                }
+                
+            }
+            
+        }
+            
+    }
+    
 
-//         let value_count = (int_vec_2.iter().filter(|&n| *n == *e).count()) as i32;
-
-//         sum += (value_count * e);
-
-//         //println!("{}", (value_count * e));
-//     }
-
-//     println!("The answer to part two is {}", sum);
-
-// }
+    println!("The answer to part one is {}", sum);
+}
 
 
 fn main() {    
