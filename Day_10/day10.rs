@@ -10,7 +10,7 @@ fn read_example_txt() -> String{
     return contents;
 }
 
-fn trail_blazing(map: &Vec<Vec<i32>>, current_location: (usize, usize), max_y: usize, nine_coords: &mut HashSet<(usize, usize)>){
+fn trail_blazing(map: &Vec<Vec<i32>>, current_location: (usize, usize), max_y: usize, nine_coords: &mut HashSet<(usize, usize)>, distinct_paths: &mut usize){
     //                                  Right    Down       Left      Up
     const DIRECTIONS: [(i32, i32); 4] = [(1, 0), (0, 1), (-1, 0), (0, -1)];
     
@@ -18,6 +18,7 @@ fn trail_blazing(map: &Vec<Vec<i32>>, current_location: (usize, usize), max_y: u
     
     if current_value == 9{
         nine_coords.insert((current_location.0, current_location.1));
+        *distinct_paths += 1;
         return;
     }
     
@@ -29,14 +30,14 @@ fn trail_blazing(map: &Vec<Vec<i32>>, current_location: (usize, usize), max_y: u
         if (x >= 0 && x < map.len()) && (y >= 0 && y < max_y){
             if map[x][y] == current_value +1{
                 //println!("{:?}", map[x][y])
-                trail_blazing(&map, (x, y), max_y, nine_coords);
+                trail_blazing(&map, (x, y), max_y, nine_coords, distinct_paths);
             }
         }
     }
 }
 
 
-fn part_one(){
+fn part_one_and_two(){
     let string_value = read_example_txt();
     
     let mut map: Vec<Vec<i32>> = vec![];
@@ -54,7 +55,7 @@ fn part_one(){
 
     for x in 0..map.len(){
         let row = &map[x];
-        println!("{:?}", row);
+        //println!("{:?}", row);
         for y in 0..row.len(){
             max_y = row.len();
             if row[y] == 0{
@@ -69,44 +70,23 @@ fn part_one(){
     
     let mut sum = 0;
     
+    let mut distinct_paths = 0;
+    
     for trailhead in trailheads{
         let mut nine_coords: HashSet<(usize, usize)> = HashSet::new();
-        trail_blazing(&map, trailhead, max_y, &mut nine_coords);
+        trail_blazing(&map, trailhead, max_y, &mut nine_coords, &mut distinct_paths);
         //println!("{:?}", nine_coords);
         sum += nine_coords.len();
     }
 
     println!("The answer to part one is {}", sum);
+    
+    println!("The answer to part two is {}", distinct_paths);
 }
 
-
-// fn part_two(){
-//     let string_value = read_example_txt();
-
-//     let (mut int_vec_1, mut int_vec_2) = string_to_int_vectors(&string_value);
-
-//     int_vec_1.sort();
-//     int_vec_2.sort();
-
-//     let mut sum = 0;
-
-//     for (pos, e) in int_vec_1.iter().enumerate() {
-//         // println!("Element at position {}: {:?}", pos, e);
-
-//         let value_count = (int_vec_2.iter().filter(|&n| *n == *e).count()) as i32;
-
-//         sum += (value_count * e);
-
-//         //println!("{}", (value_count * e));
-//     }
-
-//     println!("The answer to part two is {}", sum);
-
-// }
-
-// https://www.onlinegdb.com/online_rust_compiler#
+//https://www.onlinegdb.com/online_rust_compiler#
 fn main() {    
-    part_one();
+    part_one_and_two();
 
     //part_two();
 }
