@@ -55,33 +55,33 @@ fn part_one(){
 }
 
 
-fn part_two(){
-    let string_value = read_example_txt();
+// fn part_two(){
+//     let string_value = read_example_txt();
 
-    let (mut int_vec_1, mut int_vec_2) = string_to_int_vectors(&string_value);
+//     let (mut int_vec_1, mut int_vec_2) = string_to_int_vectors(&string_value);
 
-    int_vec_1.sort();
-    int_vec_2.sort();
+//     int_vec_1.sort();
+//     int_vec_2.sort();
 
-    let mut sum = 0;
+//     let mut sum = 0;
 
-    for (pos, e) in int_vec_1.iter().enumerate() {
-        // println!("Element at position {}: {:?}", pos, e);
+//     for (pos, e) in int_vec_1.iter().enumerate() {
+//         // println!("Element at position {}: {:?}", pos, e);
 
-        let value_count = (int_vec_2.iter().filter(|&n| *n == *e).count()) as i32;
+//         let value_count = (int_vec_2.iter().filter(|&n| *n == *e).count()) as i32;
 
-        sum += (value_count * e);
+//         sum += (value_count * e);
 
-        //println!("{}", (value_count * e));
-    }
+//         //println!("{}", (value_count * e));
+//     }
 
-    println!("The answer to part two is {}", sum);
+//     println!("The answer to part two is {}", sum);
 
-}
+// }
 
 
 fn main() {    
     part_one();
 
-    part_two();
+    //part_two();
 }
