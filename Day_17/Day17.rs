@@ -195,4 +195,8 @@ fn part_one(){
 fn main() {    
     part_one();
 
+    // Starting value (41644071) is too low. So I know at least I need to be working up.
+    // I suspect that the use of modulo % 8 will be a key part in solving this smartly
+    //part_two();
+
 }
