@@ -24,6 +24,12 @@ impl Point {
         let y = self.y.abs_diff(other.y).pow(2);
         (x as f64).add(y as f64).sqrt()
     }
+    
+    fn grid_distance(&self, other: &Point) -> u32 {
+        let x = self.x.abs_diff(other.x);
+        let y = self.y.abs_diff(other.y);
+        x + y
+    }
 
     
 }
@@ -146,6 +152,32 @@ fn shortest_path(map: &HashMap<Point, char>, start: Point) -> HashMap<Point, usi
     return dist;
 }
 
+fn speed_run(map_points: Vec<Point>, dist_map: HashMap<Point, usize>, time_to_beat: usize, threshold: u32) -> usize{
+    
+    let mut cheats = Vec::new();
+    
+    for (i, point_a) in map_points.iter().enumerate() {
+        for point_b in map_points.iter().skip(i) {
+            if point_a.grid_distance(point_b) <= threshold {
+                if let (Some(&dist_a), Some(&dist_b)) = (dist_map.get(&point_a), dist_map.get(&point_b)) {
+                    let diff = dist_a.abs_diff(dist_b)  - point_a.grid_distance(point_b) as usize;
+    
+                    if diff >= time_to_beat {
+                        cheats.push(diff);
+                    }
+                } else {
+                    //println!("Warning: Key missing for points {:?} or {:?}", point_a, point_b);
+                    continue;
+                }
+            }
+        }
+    }
+    
+    return cheats.len();
+}
+
+
+
 fn part_one_and_two(){
     let string_value = read_example_txt();
     
@@ -174,26 +206,21 @@ fn part_one_and_two(){
     
     let map_points: Vec<_> = map.keys().cloned().collect();
     
-    let mut cheats = Vec::new();
-
-    for (i, point_a) in map_points.iter().enumerate() {
-        for point_b in map_points.iter().skip(i) {
-            if point_a.distance(point_b) == 2.0 {
-                if let (Some(&dist_a), Some(&dist_b)) = (dist_map.get(&point_a), dist_map.get(&point_b)) {
-                    let diff = dist_a.abs_diff(dist_b) - 2;
     
-                    if diff >= 100 {
-                        cheats.push(diff);
-                    }
-                } else {
-                    //println!("Warning: Key missing for points {:?} or {:?}", point_a, point_b);
-                    continue;
-                }
-            }
-        }
-    }
+    let part_1_result = speed_run(map_points.clone(), dist_map.clone(), 100, 2);
+    
 
-    println!("The answer to part one is {:?}", cheats.len());
+    println!("The answer to part one is {:?}", part_1_result);
+    
+    let part_2_result = speed_run(map_points, dist_map, 100, 20);
+    
+
+    println!("The answer to part one is {:?}", part_2_result);
+    
+    //29102 - too low
+    //982854 - 'wrong' (no idea if low or high)
+    //987695 - ?
+    //1631604 - too high
     
 }
 
