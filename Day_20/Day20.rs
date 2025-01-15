@@ -3,6 +3,8 @@ use std::fs::File;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;
+use std::collections::BinaryHeap;
+use std::cmp::Reverse;
 use std::ops::Add;
 use std::ops::AddAssign;
 
@@ -15,7 +17,7 @@ struct Point {
 
 
 impl Point {
-    fn new(x: i32, y: i32) -> Point {
+    const fn new(x: i32, y: i32) -> Point {
         Point { x, y }
     }
     
@@ -57,6 +59,64 @@ impl AddAssign for Point {
 }
 
 
+static DIRS: [Point; 4] = [
+    Point::new(1, 0),
+    Point::new(-1, 0),
+    Point::new(0, 1),
+    Point::new(0, -1),
+];
+
+
+trait Neighbors {
+    type Item;
+
+    fn neighbors(&self, x: Self::Item) -> Vec<Self::Item>;
+    fn cheats(&self, x: Self::Item, duration: usize) -> Vec<Self::Item>;
+}
+
+
+impl Neighbors for HashMap<Point, char> {
+    type Item = Point;
+
+    fn neighbors(&self, x: Self::Item) -> Vec<Self::Item> {
+        DIRS.iter()
+            .map(|&d| Point::new(x.x + d.x, x.y + d.y))
+            .filter(|adj| self.get(adj) != Some(&'#'))
+            .collect()
+    }
+
+    fn cheats(&self, x: Self::Item, duration: usize) -> Vec<Self::Item> {
+        let mut neighbors = HashSet::new();
+        let mut queue = VecDeque::new();
+        
+        queue.push_back((0, x));
+
+        while let Some((dist, pos)) = queue.pop_front() {
+            if dist > duration {
+                continue;
+            }
+            if !neighbors.insert(pos) {
+                continue;
+            }
+            for next in DIRS.iter().map(|&d| Point::new(pos.x + d.x, pos.y + d.y)) {
+                queue.push_back((dist + 1, next));
+            }
+        }
+
+        let mut cheats = Vec::new();
+
+        for adj in neighbors {
+            if self.get(&adj) != Some(&'#') && adj != x {
+                cheats.push(adj);
+            }
+        }
+        
+        return cheats;
+        
+    }
+}
+
+
 fn read_example_txt() -> String{
     let mut file = File::open("example.txt").expect("Unable to open the file");
     let mut contents = String::new();
@@ -81,6 +141,7 @@ fn race_map(string_value: String) -> HashMap<Point, char>{
     return map;
 }
 
+
 // https://doc.rust-lang.org/std/option - Allows return in case value isn't found
 fn navigator(map: &HashMap<Point, char>, marker: char) -> Option<Point> {
     
@@ -95,85 +156,90 @@ fn navigator(map: &HashMap<Point, char>, marker: char) -> Option<Point> {
 }
 
 
-fn print_map(map: &HashMap<Point, char>) {
-    let min_x = map.keys().map(|p| p.x).min().unwrap_or(0);
-    let max_x = map.keys().map(|p| p.x).max().unwrap_or(0);
-    let min_y = map.keys().map(|p| p.y).min().unwrap_or(0);
-    let max_y = map.keys().map(|p| p.y).max().unwrap_or(0);
-
-    let width = max_x - min_x + 1;
-    let height = max_y - min_y + 1;
-    let mut grid = vec![vec!['.'; width as usize]; height as usize];
-
-    for (point, &ch) in map {
-        let grid_x = point.x - min_x;
-        let grid_y = point.y - min_y;
-        grid[grid_y as usize][grid_x as usize] = ch;
-    }
-
-    for row in grid {
-        println!("{}", row.iter().collect::<String>());
-    }
-}
-
-
-fn shortest_path(map: &HashMap<Point, char>, start: Point) -> HashMap<Point, usize> {
-    let mut dist: HashMap<Point, usize> = HashMap::new();
-    let mut prev: HashMap<Point, Point> = HashMap::new();
-    let mut queue = VecDeque::new();
+fn dijkstra(map: &HashMap<Point, char>, start: &Point,) -> (HashMap<Point, usize>, HashMap<Point, Point>) {
+    let mut visited = HashSet::new();
+    let mut prev = HashMap::new();
+    let mut dist = HashMap::new();
     
-    let mut adj_dirs = Vec::new();
-    
-    adj_dirs.push(Point::new(1, 0));
-    adj_dirs.push(Point::new(0, 1));
-    adj_dirs.push(Point::new(-1, 0));
-    adj_dirs.push(Point::new(0, -1));
+    dist.insert(*start, 0);
 
-    dist.insert(start, 0);
-    queue.push_back(start);
+    let mut queue = BinaryHeap::new();
+    queue.push((Reverse(0), *start));
 
-    while let Some(pos) = queue.pop_front() {
-        
-        for dir in &adj_dirs {
-            let neighbour = pos + *dir;
-            //println!("{:?} == {:?}", neighbour, map.get(&neighbour));
-            if map.get(&neighbour) == Some(&'.') {
-                let alt = dist.get(&pos).unwrap_or(&usize::MAX) + 1;
-                if alt < *dist.get(&neighbour).unwrap_or(&usize::MAX) {
-                    dist.insert(neighbour, alt);
-                    prev.insert(neighbour, pos);
-                    queue.push_back(neighbour);
-                }
-            }
+    while let Some((Reverse(score), node)) = queue.pop() {
+        if !visited.insert(node) {
+            continue;
         }
-        
-    }
 
-    return dist;
-}
+        for adj in map.neighbors(node) {
+            let next_score = score + 1;
 
-fn speed_run(map_points: Vec<Point>, dist_map: HashMap<Point, usize>, time_to_beat: usize, threshold: u32) -> usize{
-    
-    let mut cheats = Vec::new();
-    
-    for (i, point_a) in map_points.iter().enumerate() {
-        for point_b in map_points.iter().skip(i) {
-            if point_a.grid_distance(point_b) <= threshold {
-                if let (Some(&dist_a), Some(&dist_b)) = (dist_map.get(&point_a), dist_map.get(&point_b)) {
-                    let diff = dist_a.abs_diff(dist_b)  - point_a.grid_distance(point_b) as usize;
-    
-                    if diff >= time_to_beat {
-                        cheats.push(diff);
-                    }
-                } else {
-                    //println!("Warning: Key missing for points {:?} or {:?}", point_a, point_b);
-                    continue;
+            if let Some(current_score) = dist.get_mut(&adj) {
+                if next_score < *current_score {
+                    *current_score = next_score;
+                    queue.push((Reverse(next_score), adj));
+                    prev.insert(adj, node);
                 }
+            } else {
+                dist.insert(adj, next_score);
+                queue.push((Reverse(next_score), adj));
+                prev.insert(adj, node);
             }
         }
     }
+
+    (dist, prev)
+}
+
+fn shortest_path(end: &Point, prev: &HashMap<Point, Point>) -> Vec<Point> {
+    let mut path = vec![*end];
+    let mut u = *end;
+
+    while let Some(&v) = prev.get(&u) {
+        path.push(v);
+        u = v;
+    }
+
+    path.iter().copied().collect()
+}
+
+
+fn speed_run_v3(map: &HashMap<Point, char>, duration: usize) -> usize {
     
-    return cheats.len();
+    let start = navigator(&map, 'S').unwrap();
+    
+    let end = navigator(&map, 'E').unwrap();
+
+    let (dist_map, prev) = dijkstra(map, &end);
+    
+    let path = shortest_path(&start, &prev);
+
+    let mut valid_cheats = vec![];
+
+    for (i, elem) in path.iter().enumerate() {
+        for cheat in map.cheats(*elem, duration) {
+            let shortcut = (elem.x - cheat.x).abs() as usize + (elem.y - cheat.y).abs() as usize;
+
+            if cheat == end {
+                valid_cheats.push(i + shortcut);
+            } else if let Some(&d) = dist_map.get(&cheat) {
+                valid_cheats.push(i + shortcut + d as usize);
+            }
+        }
+    }
+
+    let mut count = 0;
+
+    for x in valid_cheats {
+        if x < path.len() {
+            let diff = path.len() - x;
+            if diff >= 100 {
+                count += 1;
+            }
+        }
+    }
+    
+    return count;
 }
 
 
@@ -187,39 +253,19 @@ fn part_one_and_two(){
     //     println!("{:?}", row);
     // }
     
-    let start = navigator(&map, 'S').unwrap();
-    let end = navigator(&map, 'E').unwrap();
-    
-    let dist_map = shortest_path(&map, start);
-    
-    //println!("{:?}", dist);
-    
-    // for (pos, dist) in dist_map{
-    //     //println!("{:?}", pos);
-    //     let wrapped_value = dist % 10;
-    //     //println!("{:?}", char::from_digit(wrapped_value as u32, 10));
-        
-    //     map.insert(pos, char::from_digit(wrapped_value as u32, 10).unwrap() );
-    // }
-    
-    // print_map(&map);
-    
-    let map_points: Vec<_> = map.keys().cloned().collect();
-    
-    
-    let part_1_result = speed_run(map_points.clone(), dist_map.clone(), 100, 2);
+    let part_1_result = speed_run_v3(&map, 2);
     
 
     println!("The answer to part one is {:?}", part_1_result);
     
-    let part_2_result = speed_run(map_points, dist_map, 100, 20);
+    let part_2_result = speed_run_v3(&map, 20);
     
 
     println!("The answer to part one is {:?}", part_2_result);
     
     //29102 - too low
     //982854 - 'wrong' (no idea if low or high)
-    //987695 - ?
+    //983054 - ?
     //1631604 - too high
     
 }
